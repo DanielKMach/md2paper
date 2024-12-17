@@ -1,61 +1,130 @@
 <script>
-    import { md2html } from "$lib";
+    import { manifest, md2html, download } from "$lib";
+    import { Button, Input, Icon } from "$lib/ui";
     import Editor from "$lib/Editor.svelte";
     import Preview from "$lib/Preview.svelte";
     import { onMount } from "svelte";
+    import ToolBar from "$lib/ui/ToolBar.svelte";
 
     let mode = $state("md");
-    let md = $state("");
-    let css = $state("");
+    let isDownloading = $state(false);
+    let pdfname = $state("document.pdf");
 
-    const html = $derived(md2html(md));
+    /** @type {import("$lib").DocumentManifest} */
+    let doc = $state({ content: "", styles: [""], config: {} });
 
     onMount(() => {
-        md = localStorage.getItem("md") || "";
-        css = localStorage.getItem("css") || "";
+        doc.content = localStorage.getItem("md") || "";
+        doc.styles[0] = localStorage.getItem("css") || "";
     });
 
-    $effect(() => localStorage.setItem("md", md));
-    $effect(() => localStorage.setItem("css", css));
+    $effect(() => localStorage.setItem("md", doc.content));
+    $effect(() => localStorage.setItem("css", doc.styles[0]));
+
+    async function requestDownload() {
+        isDownloading = true;
+        try {
+            const config = {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(doc),
+            };
+            const res = await fetch("/api", config);
+            if (res.status !== 200) throw new Error(await res.text());
+            const blob = await res.blob();
+            download(blob, pdfname);
+        } catch (err) {
+            alert(err);
+        }
+        isDownloading = false;
+    }
 </script>
 
 <main>
-    {#if mode === "md"}
-        <Editor bind:value={md} lang="md" --width="50vw">
-            <button onclick={() => (mode = "css")}>Editar CSS</button>
-        </Editor>
-    {/if}
-    {#if mode === "css"}
-        <Editor bind:value={css} lang="css" --width="50vw">
-            <button onclick={() => (mode = "md")}>Editar texto</button>
-        </Editor>
-    {/if}
-    <Preview {html} css={[css]} --width="100%">
-        {#snippet ready(/** @type {string} */ doc)}
-            {@const param = encodeURIComponent(btoa(doc))}
-            <a href="/api?data={param}"> Download </a>
-        {/snippet}
-    </Preview>
+    <div class="editor column">
+        {#if mode === "md"}
+            <Editor bind:value={doc.content} lang="md" />
+        {:else if mode === "css"}
+            <Editor bind:value={doc.styles[0]} lang="css" spellcheck={false} />
+        {/if}
+        <ToolBar --align="stretch" --flex="1">
+            <Button onclick={() => (mode = "md")}>
+                <Icon text /> Editar conteúdo
+            </Button>
+            <Button onclick={() => (mode = "css")}>
+                <Icon format-size /> Editar estilo
+            </Button>
+        </ToolBar>
+    </div>
+    <div class="column preview">
+        <Preview doc-manifest={doc}></Preview>
+        <ToolBar>
+            <Button onclick={requestDownload} disabled={isDownloading}>
+                {#if isDownloading}
+                    <Icon loading spin --size={1.2} />
+                {:else}
+                    <Icon download /> Download
+                {/if}
+            </Button>
+            <Input type="text" bind:value={pdfname}>Salvar como</Input>
+        </ToolBar>
+    </div>
 </main>
 
 <style>
     :global(body) {
         margin: 0;
         padding: 10px;
-        font-family: sans-serif;
+        font-family:
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            Roboto,
+            Oxygen,
+            Ubuntu,
+            Cantarell,
+            "Open Sans",
+            "Helvetica Neue",
+            sans-serif;
         height: 100vh;
         box-sizing: border-box;
-        overflow-x: hidden;
+        background-color: var(--g-bg1);
     }
     main {
         display: grid;
-        grid-template-columns: 0fr 1fr;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 100%;
+        width: 100%;
         height: 100%;
-        gap: 1rem;
+        gap: var(--g-gap);
     }
-    main > :global(*) {
+
+    .column {
         display: flex;
-        flex-direction: column;
-        gap: 1rem;
+        flex-flow: column nowrap;
+        justify-content: stretch;
+        align-items: stretch;
+        gap: var(--g-gap);
+    }
+
+    .column > :global(:first-child) {
+        flex: 1;
+    }
+
+    .editor {
+        flex-flow: column-reverse nowrap;
+    }
+
+    @media (max-width: 500px) {
+        main {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 100%;
+            --direction: column;
+        }
+        :global(body) {
+            overflow-y: hidden;
+            width: 190vw;
+        }
     }
 </style>

@@ -1,0 +1,10 @@
+* {
+    --g-color: #EEE;
+    --g-bg1: #222;
+    --g-bg2: #333;
+    --g-rad: 20px;
+    --g-focus: #289;
+    --g-hover: #1A2;
+    --g-disab: #111;
+    --g-gap: 10px;
+}

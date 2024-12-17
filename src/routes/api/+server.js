@@ -1,13 +1,28 @@
-import { assemble } from '$lib';
+import { assemble, md2html } from '$lib';
 import { Wkhtmltopdf } from '$lib/server/converters/wkhtmltopdf.js';
-import { error, text } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 
-const converter = new Wkhtmltopdf();
+/** @type {Wkhtmltopdf} */
+const converter = new Wkhtmltopdf('file');
+
+/** @type {Promise<Buffer>[]} */
+const pending = [];
 
 export async function POST({ request }) {
     try {
-        const doc = await request.text();
-        const pdf = await converter.convert(doc);
+        /** @type {import('$lib').DocumentManifest} */
+        const doc = await request.json();
+        const html = await assemble(doc);
+
+        const promise = (async () => {
+            await Promise.all([...pending]);
+            return await converter.convert(html);
+        })();
+
+        pending.push(promise);
+        const pdf = await promise;
+        const index = pending.indexOf(promise);
+        if (index > -1) pending.splice(index, 1);
 
         return new Response(pdf, {
             headers: {
@@ -24,14 +39,14 @@ export async function POST({ request }) {
 export async function GET({ request, fetch }) {
     try {
         const b64 = new URL(request.url).searchParams.get('data') || error(400, 'No data provided')
-        const content = atob(b64);
+        const data = atob(b64);
 
         return await fetch('/api', {
             method: 'POST',
             headers: {
                 'Content-Type': 'text/html; charset=utf-8'
             },
-            body: content
+            body: data
         });
     }
     catch (err) {

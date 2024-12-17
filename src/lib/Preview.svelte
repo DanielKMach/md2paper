@@ -1,42 +1,40 @@
 <script>
     import { assemble } from "$lib";
 
-    let { html, css = [], ready = null, ...props } = $props();
-    const res = $derived(html instanceof Promise ? html : Promise.resolve(html));
+    /** @type {{"doc-manifest": import("$lib").DocumentManifest, [key: string]: any}} */
+    let { "doc-manifest": doc, children = null, ...props } = $props();
+
+    /** @type {HTMLIFrameElement | null} */
+    let iframe = $state(null);
+
+    $inspect(doc);
+
+    $effect(() => {
+        doc.content;
+        doc.styles.forEach((s) => s);
+        doc.config;
+        let timeout = setTimeout(async () => {
+            if (iframe && iframe.contentDocument && iframe.contentDocument.body.parentElement) {
+                const html = await assemble(doc);
+                iframe.contentDocument.body.parentElement.innerHTML = html;
+            }
+        }, 250);
+        return () => clearTimeout(timeout);
+    });
 </script>
 
-<div>
-    {#await res}
-        <p>Loading...</p>
-    {:then html}
-        {#if html}
-            {@const doc = assemble(html, css)}
-            <iframe {...props} srcdoc={doc} title="Preview"></iframe>
-            {#if ready}
-                {@render ready(doc)}
-            {/if}
-        {:else}
-            <p>Nothing to preview</p>
-        {/if}
-    {:catch error}
-        <p style="color: red">{error.message}</p>
-    {/await}
-</div>
+<iframe bind:this={iframe} {...props} title="Preview"></iframe>
 
 <style>
-    div {
-        display: flex;
-        flex-flow: column;
-        gap: 5px;
+    iframe {
+        display: block;
 
         width: var(--width, auto);
         height: var(--height, auto);
         box-sizing: border-box;
-    }
-    iframe {
-        display: block;
-        flex: 1;
-        width: 100%;
-        box-sizing: border-box;
+
+        border: 1px solid var(--g-bg2);
+        border-radius: var(--g-rad);
+        background-color: #fff;
     }
 </style>
