@@ -7,8 +7,6 @@
     /** @type {HTMLIFrameElement | null} */
     let iframe = $state(null);
 
-    $inspect(doc);
-
     $effect(() => {
         doc.content;
         doc.styles.forEach((s) => s);
