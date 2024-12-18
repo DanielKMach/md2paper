@@ -48,10 +48,10 @@
             <Editor bind:value={doc.styles[0]} lang="css" spellcheck={false} />
         {/if}
         <ToolBar --align="stretch" --flex="1">
-            <Button onclick={() => (mode = "md")}>
+            <Button onclick={() => (mode = "md")} disabled={mode == "md"}>
                 <Icon text /> Editar conteúdo
             </Button>
-            <Button onclick={() => (mode = "css")}>
+            <Button onclick={() => (mode = "css")} disabled={mode == "css"}>
                 <Icon format-size /> Editar estilo
             </Button>
         </ToolBar>

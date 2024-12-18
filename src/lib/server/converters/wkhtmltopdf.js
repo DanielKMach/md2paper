@@ -1,5 +1,6 @@
 import { spawn } from "child_process";
-import fs from 'node:fs'
+import fs from 'node:fs/promises'
+import { promisify } from "node:util";
 import { escapeCLI } from "../cli_util";
 
 export class Wkhtmltopdf {
@@ -19,7 +20,10 @@ export class Wkhtmltopdf {
      * @returns {Promise<Buffer>}
      */
     async convert(doc) {
-        return await (this.method === 'file' ? this.convertFile(doc) : this.convertStream(doc));
+        if (this.method === 'file')
+            return await this.convertFile(doc);
+        else
+            return await this.convertStream(doc);
     }
 
     /**
@@ -54,22 +58,23 @@ export class Wkhtmltopdf {
      * @returns {Promise<Buffer>}
      */
     async convertFile(doc) {
-        /** @type {Promise<Buffer>} */
-        const promise = new Promise((res, rej) => {
-            let buffer = Buffer.from([]);
+        try {
+            await fs.rm('temp.html', { force: true });
+            await fs.writeFile('temp.html', doc, { encoding: 'utf-8', flag: 'w+' });
 
-            fs.writeFile('temp.html', doc, { encoding: 'utf-8' }, (err) => {
-                if (err) {
-                    rej(err);
-                    return;
-                }
-
+            /** @type {Promise<Buffer>} */
+            return await new Promise((res, rej) => {
+                let buffer = Buffer.from([]);
                 const command = `wkhtmltopdf temp.html -`;
                 const process = spawn('powershell', ['/c', command]);
                 let stderr = "";
 
-                process.stdout.on('data', (chunk) => buffer = Buffer.concat([buffer, chunk])); // buffer.write(String(chunk)));
-                process.stderr.on('data', (chunk) => stderr += String(chunk));
+                process.stdout.on('data', (chunk) => {
+                    buffer = Buffer.concat([buffer, chunk]);
+                });
+                process.stderr.on('data', (chunk) => {
+                    stderr += String(chunk)
+                });
 
                 process.on('close', (code) => {
                     if (code !== 0) {
@@ -82,7 +87,10 @@ export class Wkhtmltopdf {
                 process.stdin.write(doc);
                 process.stdin.end();
             });
-        });
-        return promise;
+        }
+        catch (err) {
+            await fs.rm('temp.html', { force: true });
+            throw err;
+        }
     }
 }

@@ -45,7 +45,7 @@
         right: 0;
         bottom: 0;
         resize: none;
-        overflow: scroll;
+        overflow: auto;
 
         padding: 10px;
         margin: 0;
