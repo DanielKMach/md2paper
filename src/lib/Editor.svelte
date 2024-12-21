@@ -1,9 +1,14 @@
 <script>
+    // @ts-nocheck
+
     import Prism from "prismjs";
     import "prismjs/themes/prism-dark.min.css";
     import "prismjs/components/prism-markdown.js";
     import "prismjs/components/prism-css.js";
 
+    import { tab, bold } from "$lib/editor";
+
+    /** @type {{value: string, lang: string, [key: string]: any}} */
     let { value = $bindable(), lang, ...props } = $props();
 
     const tokens = $derived(Prism.highlight(value, Prism.languages[lang], lang));
@@ -26,7 +31,7 @@
 
 <div class="editor">
     <pre class="code" bind:this={code}>{@html tokens}</pre>
-    <textarea {...props} bind:this={textarea} bind:value></textarea>
+    <textarea {...props} bind:this={textarea} bind:value use:tab use:bold></textarea>
 </div>
 
 <style>
@@ -56,6 +61,7 @@
         text-align: left;
         text-wrap: wrap;
         line-height: normal;
+        tab-size: var(--tabsize, 4);
     }
 
     textarea {
