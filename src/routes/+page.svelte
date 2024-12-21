@@ -10,6 +10,9 @@
     let isDownloading = $state(false);
     let pdfname = $state("document.pdf");
 
+    /** @type {Preview | null} */
+    let preview = $state(null);
+
     /** @type {import("$lib").DocumentManifest} */
     let doc = $state({ content: "", styles: [""], config: {} });
 
@@ -57,7 +60,7 @@
         </ToolBar>
     </div>
     <div class="column preview">
-        <Preview doc-manifest={doc}></Preview>
+        <Preview bind:this={preview} doc-manifest={doc}></Preview>
         <ToolBar>
             <Button onclick={requestDownload} disabled={isDownloading}>
                 {#if isDownloading}
@@ -65,6 +68,9 @@
                 {:else}
                     <Icon download /> Download
                 {/if}
+            </Button>
+            <Button onclick={() => preview?.print()}>
+                <Icon print /> Imprimir
             </Button>
             <Input type="text" bind:value={pdfname}>Salvar como</Input>
         </ToolBar>

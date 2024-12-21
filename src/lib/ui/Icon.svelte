@@ -2,14 +2,7 @@
     /** @type {{[key: string]: any}} */
     let { spin = false, ...props } = $props();
 
-    const map = {
-        loading: "/icons/progress.svg",
-        download: "/icons/download.svg",
-        text: "/icons/text.svg",
-        "format-size": "/icons/format-size.svg",
-    };
-
-    const src = $derived(map[Object.keys(props)[0]]);
+    const src = $derived(`/icons/${Object.keys(props)[0]}.svg`);
 </script>
 
 <img {...props} {src} class:spin />

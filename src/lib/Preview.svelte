@@ -19,6 +19,12 @@
         }, 250);
         return () => clearTimeout(timeout);
     });
+
+    export function print() {
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.print();
+        }
+    }
 </script>
 
 <iframe bind:this={iframe} {...props} title="Preview"></iframe>
