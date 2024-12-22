@@ -1,15 +1,21 @@
 import { assemble, md2html } from '$lib';
-import { Wkhtmltopdf } from '$lib/server/converters/wkhtmltopdf.js';
+import { WkhtmltopdfConverter, PuppeteerConverter } from '$lib/server/converters';
 import { error } from '@sveltejs/kit';
 
-/** @type {Wkhtmltopdf} */
-const converter = new Wkhtmltopdf('file');
+/** @type {Record<string, import('$lib/server/converters').Converter>} */
+const converters = {
+    wkhtmltopdf: new WkhtmltopdfConverter('file'),
+    puppeteer: new PuppeteerConverter()
+}
 
 /** @type {Promise<Buffer>[]} */
 const pending = [];
 
-export async function POST({ request }) {
+/** @type {import('./$types').RequestHandler} */
+export async function POST({ request, params }) {
     try {
+        const converter = converters[params.method] || error(400, 'Invalid method');
+
         /** @type {import('$lib').DocumentManifest} */
         const doc = await request.json();
         const html = await assemble(doc);
@@ -27,7 +33,7 @@ export async function POST({ request }) {
         return new Response(pdf, {
             headers: {
                 'Content-Type': 'application/octet-stream',
-                'Content-Disposition': 'attachment; filename=document.pdf'
+                'Content-Disposition': 'attachment'
             }
         });
     }
@@ -36,18 +42,23 @@ export async function POST({ request }) {
     }
 }
 
+/** @type {import('./$types').RequestHandler} */
 export async function GET({ request, fetch }) {
     try {
-        const b64 = new URL(request.url).searchParams.get('data') || error(400, 'No data provided')
+        const url = new URL(request.url);
+        const b64 = url.searchParams.get('data') || error(400, 'No data provided')
         const data = atob(b64);
 
-        return await fetch('/api', {
+        const response = await fetch(url.pathname, {
             method: 'POST',
             headers: {
                 'Content-Type': 'text/html; charset=utf-8'
             },
             body: data
         });
+
+        response.headers.set('Content-Disposition', 'inline');
+        return response;
     }
     catch (err) {
         error(500, String(err));

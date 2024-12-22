@@ -1,9 +1,8 @@
 import { spawn } from "child_process";
 import fs from 'node:fs/promises'
-import { promisify } from "node:util";
 import { escapeCLI } from "../cli_util";
 
-export class Wkhtmltopdf {
+export class WkhtmltopdfConverter {
 
     /** @type {'cli' | 'file'} */
     method

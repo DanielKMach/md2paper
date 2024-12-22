@@ -32,7 +32,7 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(doc),
             };
-            const res = await fetch("/api", config);
+            const res = await fetch("/api/puppeteer", config);
             if (res.status !== 200) throw new Error(await res.text());
             const blob = await res.blob();
             download(blob, pdfname);
